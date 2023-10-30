@@ -1,0 +1,79 @@
+
+#include <dht.h>
+#include <PID_Temp_lib.h>
+//#include <SD.h>
+//File prototype1_experiment1;
+
+dht DHT;
+
+#define DHT11_PIN 3        // Pin connected to DHT11 data pin
+#define sensorPin A1
+#define sensorPin2 A2
+int RELAY_PIN=9;
+//int RELAY_PIN2=3;
+
+float *temp= new float;
+float *temp2= new float;
+int *hum= new int;
+
+
+PIDLIB PID_temp;
+double Kp=2,Kd=1,Ki=0;
+int setp;
+//double setp=36;
+
+void setup()
+{
+    Serial.begin(9600);
+    pinMode(10, OUTPUT);
+
+    PID_temp.tune_values ( Kp,  Ki, Kd);
+    pinMode(RELAY_PIN, OUTPUT);
+
+   
+
+}
+
+
+void loop()
+{
+  setp= PID_temp.Get_user_input();
+  PID_temp.set_init(setp);
+  int ther_val;
+  double output_v, RT, RTL ; 
+  ther_val = analogRead(sensorPin);
+  output_v = ( (ther_val * 5.0) / 1023.0 );
+  RT = ( ( 5 * ( 10.0 / output_v ) ) - 10 ); /* Resistance in kilo ohms */
+  RT = RT * 1000 ; /* Resistance in ohms   */
+  RTL = log(RT);
+  *temp = ( 1 / ( 0.001129148 + ( 0.000234125 * RTL ) + ( 0.0000000876741 * RTL * RTL * RTL ) ) ); /* Temperature in Kelvin */
+  *temp = *temp - 273.15;
+  
+  PID_temp.control(temp);
+  PID_temp.Relay_control(temp, RELAY_PIN);
+  double time= millis()/1000;
+  
+
+  //for the thermistor inside the tiny box
+  int ther_val2;
+  double output_v2, RT2, RTL2 ; 
+  ther_val2 = analogRead(sensorPin2);
+  output_v2 = ( (ther_val2 * 5.0) / 1023.0 );
+  RT2 = ( ( 5 * ( 10.0 / output_v2 ) ) - 10 ); /* Resistance in kilo ohms */
+  RT2 = RT2 * 1000 ; /* Resistance in ohms   */
+  RTL2 = log(RT2);
+  *temp2 = ( 1 / ( 0.001129148 + ( 0.000234125 * RTL2 ) + ( 0.0000000876741 * RTL2 * RTL2 * RTL2 ) ) ); /* Temperature in Kelvin */
+  *temp2 = *temp2 - 273.15;
+  
+    Serial.print(time);
+    Serial.print( ",");
+    Serial.print(*temp);
+    Serial.print( ",");
+    //Serial.print( "tiny box temp");
+    Serial.println(*temp2);
+    Serial.println( " ");
+
+
+    delay(1000);
+
+}
